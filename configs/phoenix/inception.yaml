@@ -1,6 +1,6 @@
 name: phoenix_iv4
 data:
-    data_path: ./cnn-phoenix/iv4/
+    data_path: ./datasets/cnn-phoenix/iv4/
     version: phoenix_2014_trans
     sgn: sign
     txt: text

@@ -1,6 +1,6 @@
 name: phoenix_squeezenet
 data:
-    data_path: ./cnn-phoenix/squeezenet/
+    data_path: ./datasets/cnn-phoenix/squeezenet/
     version: phoenix_2014_trans
     sgn: sign
     txt: text

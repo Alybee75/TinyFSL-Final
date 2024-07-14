@@ -1,6 +1,6 @@
 name: kd_fsl105_tfl_squeezenet
 data:
-    data_path: ./fsl-datasets/
+    data_path: ./datasets/fsl-datasets/
     version: fsl
     sgn: sign
     txt: text

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Create directory for all datasets
+mkdir -p datasets
+cd datasets
+
 # Create directory for FSL datasets and download the datasets
 mkdir -p fsl-datasets
 # Assuming gdown is installed. If not, you can install it using `pip install gdown`

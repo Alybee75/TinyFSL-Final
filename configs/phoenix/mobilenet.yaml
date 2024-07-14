@@ -1,6 +1,6 @@
 name: phoenix_mobilenet
 data:
-    data_path: ./cnn-phoenix/mobilenet/
+    data_path: ./datasets/cnn-phoenix/mobilenet/
     version: phoenix_2014_trans
     sgn: sign
     txt: text

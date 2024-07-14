@@ -1,6 +1,6 @@
 name: phoenix_alexnet
 data:
-    data_path: ./cnn-phoenix/alexnet/
+    data_path: ./datasets/cnn-phoenix/alexnet/
     version: phoenix_2014_trans
     sgn: sign
     txt: text
