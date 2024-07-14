@@ -11,9 +11,9 @@ import time
 import queue
 import time
 
-from signjoey.model import build_model
-from signjoey.batch import Batch
-from signjoey.helpers import (
+from training-tfl.model import build_model
+from training-tfl.batch import Batch
+from training-tfl.helpers import (
     log_data_info,
     load_config,
     log_cfg,
@@ -23,14 +23,14 @@ from signjoey.helpers import (
     set_seed,
     symlink_update,
 )
-from signjoey.model import SignModel, tf_freeze_model_parameters, build_transfer_model
-from signjoey.prediction import validate_on_data
-from signjoey.loss import XentLoss
-from signjoey.data import load_data, make_data_iter
-from signjoey.builders import build_optimizer, build_scheduler, build_gradient_clipper
-from signjoey.prediction import test
-from signjoey.metrics import wer_single
-from signjoey.vocabulary import SIL_TOKEN
+from training-tfl.model import SignModel, tf_freeze_model_parameters, build_transfer_model
+from training-tfl.prediction import validate_on_data
+from training-tfl.loss import XentLoss
+from training-tfl.data import load_data, make_data_iter
+from training-tfl.builders import build_optimizer, build_scheduler, build_gradient_clipper
+from training-tfl.prediction import test
+from training-tfl.metrics import wer_single
+from training-tfl.vocabulary import SIL_TOKEN
 from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torchtext.data import Dataset
