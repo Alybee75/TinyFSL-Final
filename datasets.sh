@@ -25,10 +25,10 @@ gdown --folder https://drive.google.com/drive/folders/1dv8E03aQ5YY7SwuvDCJe7AQSy
 # Download alexnet
 gdown --folder https://drive.google.com/drive/folders/1agTPpjuKCQGyROhMX9XXnVyG8JpHYqrj -O ./alexnet
 
+# Download camgoz files
 mkdir -p camgoz
 cd camgoz
 
-# Download camgoz files
 wget "http://cihancamgoz.com/files/cvpr2020/phoenix14t.pami0.train"
 wget "http://cihancamgoz.com/files/cvpr2020/phoenix14t.pami0.dev"
 wget "http://cihancamgoz.com/files/cvpr2020/phoenix14t.pami0.test"
