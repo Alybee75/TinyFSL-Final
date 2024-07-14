@@ -15,19 +15,19 @@ from onnx_tf.backend import prepare
 
 from typing import List
 from torchtext.data import Dataset
-from kd-mc.loss import XentLoss
-from kd-mc.helpers import (
+from kd.mc.loss import XentLoss
+from kd.mc.helpers import (
     bpe_postprocess,
     load_config,
     get_latest_checkpoint,
     load_checkpoint,
 )
-from kd-mc.metrics import bleu, chrf, rouge, wer_list
-from kd-mc.model import build_model, SignModel
-from kd-mc.batch import Batch
-from kd-mc.data import load_data, make_data_iter
-from kd-mc.vocabulary import PAD_TOKEN, SIL_TOKEN
-from kd-mc.phoenix_utils.phoenix_cleanup import (
+from kd.mc.metrics import bleu, chrf, rouge, wer_list
+from kd.mc.model import build_model, SignModel
+from kd.mc.batch import Batch
+from kd.mc.data import load_data, make_data_iter
+from kd.mc.vocabulary import PAD_TOKEN, SIL_TOKEN
+from kd.mc.phoenix_utils.phoenix_cleanup import (
     clean_phoenix_2014,
     clean_phoenix_2014_trans,
     identity_function,

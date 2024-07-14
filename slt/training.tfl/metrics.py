@@ -3,8 +3,8 @@
 This module holds various MT evaluation metrics.
 """
 
-from kd-mc.external_metrics import sacrebleu
-from kd-mc.external_metrics import mscoco_rouge
+from training.tfl.external_metrics import sacrebleu
+from training.tfl.external_metrics import mscoco_rouge
 import numpy as np
 
 WER_COST_DEL = 3

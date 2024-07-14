@@ -11,19 +11,19 @@ import torch.nn as nn
 
 from typing import List
 from torchtext.data import Dataset
-from training-tfl.loss import XentLoss
-from training-tfl.helpers import (
+from training.tfl.loss import XentLoss
+from training.tfl.helpers import (
     bpe_postprocess,
     load_config,
     get_latest_checkpoint,
     load_checkpoint,
 )
-from training-tfl.metrics import bleu, chrf, rouge, wer_list
-from training-tfl.model import build_model, SignModel
-from training-tfl.batch import Batch
-from training-tfl.data import load_data, make_data_iter
-from training-tfl.vocabulary import PAD_TOKEN, SIL_TOKEN
-from training-tfl.phoenix_utils.phoenix_cleanup import (
+from training.tfl.metrics import bleu, chrf, rouge, wer_list
+from training.tfl.model import build_model, SignModel
+from training.tfl.batch import Batch
+from training.tfl.data import load_data, make_data_iter
+from training.tfl.vocabulary import PAD_TOKEN, SIL_TOKEN
+from training.tfl.phoenix_utils.phoenix_cleanup import (
     clean_phoenix_2014,
     clean_phoenix_2014_trans,
     identity_function,

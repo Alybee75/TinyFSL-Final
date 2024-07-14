@@ -19,7 +19,7 @@ import torch
 from torch import nn, Tensor
 from torchtext.data import Dataset
 import yaml
-from kd-mc.vocabulary import GlossVocabulary, TextVocabulary
+from training.tfl.vocabulary import GlossVocabulary, TextVocabulary
 
 
 def make_model_dir(model_dir: str, overwrite: bool = False) -> str:

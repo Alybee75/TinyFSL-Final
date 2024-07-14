@@ -3,7 +3,7 @@ import torch
 
 from torch import nn, Tensor
 import torch.nn.functional as F
-from kd-mc.helpers import freeze_params
+from training.tfl.helpers import freeze_params
 
 
 def get_activation(activation_type):

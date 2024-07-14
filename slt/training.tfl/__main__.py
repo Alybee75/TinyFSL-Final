@@ -2,9 +2,9 @@ import argparse
 import os
 
 import sys
-from training-tfl.training import train
-from training-tfl.prediction import test
-from training-tfl.helpers import (
+from training.tfl.training import train
+from training.tfl.prediction import test
+from training.tfl.helpers import (
     log_data_info,
     load_config,
     log_cfg,

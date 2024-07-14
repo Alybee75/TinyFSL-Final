@@ -4,9 +4,9 @@ import torch.nn.functional as F
 from torch import Tensor
 import numpy as np
 
-from training-tfl.decoders import Decoder, TransformerDecoder
-from training-tfl.embeddings import Embeddings
-from training-tfl.helpers import tile
+from training.tfl.decoders import Decoder, TransformerDecoder
+from training.tfl.embeddings import Embeddings
+from training.tfl.helpers import tile
 
 
 __all__ = ["greedy", "transformer_greedy", "beam_search"]

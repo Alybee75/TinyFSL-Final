@@ -8,10 +8,10 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from torch import Tensor
-from training-tfl.attention import BahdanauAttention, LuongAttention
-from training-tfl.encoders import Encoder
-from training-tfl.helpers import freeze_params, subsequent_mask
-from training-tfl.transformer_layers import PositionalEncoding, TransformerDecoderLayer
+from training.tfl.attention import BahdanauAttention, LuongAttention
+from training.tfl.encoders import Encoder
+from training.tfl.helpers import freeze_params, subsequent_mask
+from training.tfl.transformer_layers import PositionalEncoding, TransformerDecoderLayer
 
 
 # pylint: disable=abstract-method

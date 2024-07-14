@@ -2,10 +2,10 @@ import argparse
 import os
 
 import sys
-from kd-mc.training import train
-from kd-mc.prediction import test
-from kd-mc.kd import convertModel
-from kd-mc.helpers import (
+from kd.mc.training import train
+from kd.mc.prediction import test
+from kd.mc.kd import convertModel
+from kd.mc.helpers import (
     log_data_info,
     load_config,
     log_cfg,
@@ -15,8 +15,8 @@ from kd-mc.helpers import (
     set_seed,
     symlink_update,
 )
-from kd-mc.data import load_data, make_data_iter
-from kd-mc.model import load_teacher_model
+from kd.mc.data import load_data, make_data_iter
+from kd.mc.model import load_teacher_model
 
 sys.path.append("/vol/research/extol/personal/cihan/code/SignJoey")
 

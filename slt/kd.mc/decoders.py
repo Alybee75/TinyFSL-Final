@@ -8,10 +8,10 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from torch import Tensor
-from kd-mc.attention import BahdanauAttention, LuongAttention
-from kd-mc.encoders import Encoder
-from kd-mc.helpers import freeze_params, subsequent_mask
-from kd-mc.transformer_layers import PositionalEncoding, TransformerDecoderLayer
+from kd.mc.attention import BahdanauAttention, LuongAttention
+from kd.mc.encoders import Encoder
+from kd.mc.helpers import freeze_params, subsequent_mask
+from kd.mc.transformer_layers import PositionalEncoding, TransformerDecoderLayer
 
 
 # pylint: disable=abstract-method

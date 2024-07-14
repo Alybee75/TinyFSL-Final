@@ -8,20 +8,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from itertools import groupby
-from training-tfl.initialization import initialize_model
-from training-tfl.embeddings import Embeddings, SpatialEmbeddings
-from training-tfl.encoders import Encoder, RecurrentEncoder, TransformerEncoder
-from training-tfl.decoders import Decoder, RecurrentDecoder, TransformerDecoder
-from training-tfl.search import beam_search, greedy
-from training-tfl.vocabulary import (
+from training.tfl.initialization import initialize_model
+from training.tfl.embeddings import Embeddings, SpatialEmbeddings
+from training.tfl.encoders import Encoder, RecurrentEncoder, TransformerEncoder
+from training.tfl.decoders import Decoder, RecurrentDecoder, TransformerDecoder
+from training.tfl.search import beam_search, greedy
+from training.tfl.vocabulary import (
     TextVocabulary,
     GlossVocabulary,
     PAD_TOKEN,
     EOS_TOKEN,
     BOS_TOKEN,
 )
-from training-tfl.batch import Batch
-from training-tfl.helpers import freeze_params
+from training.tfl.batch import Batch
+from training.tfl.helpers import freeze_params
 from torch import Tensor
 from typing import Union
 
