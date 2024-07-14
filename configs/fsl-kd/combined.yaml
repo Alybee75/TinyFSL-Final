@@ -1,4 +1,4 @@
-name: combined_tfl_squeezenet
+name: kd_combined_tfl_squeezenet
 data:
     data_path: ./fsl-datasets/
     version: fsl
