@@ -30,7 +30,7 @@ conda activate myenv
 Install the required Python packages from the `requirements.txt` file:
 
 ```bash
-pip install -r slt/requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Step 5: Install `freetype` if Needed
