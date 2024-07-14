@@ -50,7 +50,7 @@ training:
     reset_scheduler: false
     reset_optimizer: false
     random_seed: 42
-    model_dir: "./fsl105_squeezenet_model_unf"
+    model_dir: "./kd_fsl105_squeezenet_model_unf"
     recognition_loss_weight: 0.5        # changed
     translation_loss_weight: 0.5        # changed
     eval_metric: bleu
