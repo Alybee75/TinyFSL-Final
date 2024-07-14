@@ -8,21 +8,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from itertools import groupby
-from signjoey.initialization import initialize_model
-from signjoey.embeddings import Embeddings, SpatialEmbeddings
-from signjoey.encoders import Encoder, RecurrentEncoder, TransformerEncoder
-from signjoey.decoders import Decoder, RecurrentDecoder, TransformerDecoder
-from signjoey.search import beam_search, greedy
+from kd-mc.initialization import initialize_model
+from kd-mc.embeddings import Embeddings, SpatialEmbeddings
+from kd-mc.encoders import Encoder, RecurrentEncoder, TransformerEncoder
+from kd-mc.decoders import Decoder, RecurrentDecoder, TransformerDecoder
+from kd-mc.search import beam_search, greedy
 from torchtext.data import Field, RawField
-from signjoey.vocabulary import (
+from kd-mc.vocabulary import (
     TextVocabulary,
     GlossVocabulary,
     PAD_TOKEN,
     EOS_TOKEN,
     BOS_TOKEN,
 )
-from signjoey.batch import Batch
-from signjoey.helpers import freeze_params, load_config, load_checkpoint
+from kd-mc.batch import Batch
+from kd-mc.helpers import freeze_params, load_config, load_checkpoint
 from torch import Tensor
 from typing import Union
 import torch

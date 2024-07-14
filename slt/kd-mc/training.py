@@ -10,9 +10,9 @@ import shutil
 import time
 import queue
 
-from signjoey.model import build_model
-from signjoey.batch import Batch
-from signjoey.helpers import (
+from kd-mc.model import build_model
+from kd-mc.batch import Batch
+from kd-mc.helpers import (
     log_data_info,
     load_config,
     log_cfg,
@@ -22,14 +22,14 @@ from signjoey.helpers import (
     set_seed,
     symlink_update,
 )
-from signjoey.model import SignModel
-from signjoey.prediction import validate_on_data
-from signjoey.loss import XentLoss
-from signjoey.data import load_data, make_data_iter
-from signjoey.builders import build_optimizer, build_scheduler, build_gradient_clipper
-from signjoey.prediction import test
-from signjoey.metrics import wer_single
-from signjoey.vocabulary import SIL_TOKEN
+from kd-mc.model import SignModel
+from kd-mc.prediction import validate_on_data
+from kd-mc.loss import XentLoss
+from kd-mc.data import load_data, make_data_iter
+from kd-mc.builders import build_optimizer, build_scheduler, build_gradient_clipper
+from kd-mc.prediction import test
+from kd-mc.metrics import wer_single
+from kd-mc.vocabulary import SIL_TOKEN
 from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torchtext.data import Dataset

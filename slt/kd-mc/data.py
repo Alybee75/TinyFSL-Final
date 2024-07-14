@@ -10,8 +10,8 @@ import torch
 from torchtext import data
 from torchtext.data import Dataset, Iterator
 import socket
-from signjoey.dataset import SignTranslationDataset
-from signjoey.vocabulary import (
+from kd-mc.dataset import SignTranslationDataset
+from kd-mc.vocabulary import (
     build_vocab,
     Vocabulary,
     UNK_TOKEN,
