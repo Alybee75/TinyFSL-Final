@@ -51,14 +51,14 @@ training:
     reset_optimizer: false
     random_seed: 42
     model_dir: "./combined_squeezenet_model_unf"
-    recognition_loss_weight: 1.0
-    translation_loss_weight: 1.0
+    recognition_loss_weight: 0.5        # changed
+    translation_loss_weight: 0.5        # changed
     eval_metric: bleu
     optimizer: adam
     learning_rate: 0.001
     batch_size: 32
     num_valid_log: 5
-    epochs: 5000000
+    epochs: 100000      # changed
     early_stopping_metric: eval_metric
     batch_type: sentence
     translation_normalization: batch
@@ -82,7 +82,6 @@ training:
     patience: 8
     decrease_factor: 0.7
     label_smoothing: 0.0
-    load_model: './ckpts/phoenix-train-models/squeezenet_model_3800.ckpt'
 model:
     initializer: xavier
     bias_initializer: zeros
@@ -92,27 +91,27 @@ model:
     tied_softmax: false
     encoder:
         type: transformer
-        num_layers: 3
+        num_layers: 2       # changed
         num_heads: 8
         embeddings:
-            embedding_dim: 512
+            embedding_dim: 256      # changed
             scale: false
             dropout: 0.1
             norm_type: batch
             activation_type: softsign
-        hidden_size: 512
-        ff_size: 2048
+        hidden_size: 256    #changed
+        ff_size: 1024       # changed
         dropout: 0.1
     decoder:
         type: transformer
-        num_layers: 3
+        num_layers: 2       # changed
         num_heads: 8
         embeddings:
-            embedding_dim: 512
+            embedding_dim: 256      # changed
             scale: false
             dropout: 0.1
             norm_type: batch
             activation_type: softsign
-        hidden_size: 512
-        ff_size: 2048
+        hidden_size: 246    # changed
+        ff_size: 1024       # changed
         dropout: 0.1
