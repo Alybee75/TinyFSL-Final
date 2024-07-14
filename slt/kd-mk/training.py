@@ -9,7 +9,6 @@ import os
 import shutil
 import time
 import queue
-import time
 
 from signjoey.model import build_model
 from signjoey.batch import Batch
@@ -23,7 +22,7 @@ from signjoey.helpers import (
     set_seed,
     symlink_update,
 )
-from signjoey.model import SignModel, tf_freeze_model_parameters, build_transfer_model
+from signjoey.model import SignModel
 from signjoey.prediction import validate_on_data
 from signjoey.loss import XentLoss
 from signjoey.data import load_data, make_data_iter
@@ -42,7 +41,7 @@ class TrainManager:
     """ Manages training loop, validations, learning rate scheduling
     and early stopping."""
 
-    def __init__(self, model: SignModel, config: dict) -> None:
+    def __init__(self, model: SignModel, config: dict, teacher: SignModel) -> None:
         """
         Creates a new TrainManager for a model, specified as in configuration.
 
@@ -59,6 +58,7 @@ class TrainManager:
         self.logging_freq = train_config.get("logging_freq", 100)
         self.valid_report_file = "{}/validations.txt".format(self.model_dir)
         self.tb_writer = SummaryWriter(log_dir=self.model_dir + "/tensorboard/")
+        self.teacher = teacher
 
         # input
         self.feature_size = (
@@ -189,7 +189,6 @@ class TrainManager:
 
         # model parameters
         if "load_model" in train_config.keys():
-            print("___TRANSFER LEARNING____")
             model_load_path = train_config["load_model"]
             self.logger.info("Loading model from %s", model_load_path)
             reset_best_ckpt = train_config.get("reset_best_ckpt", False)
@@ -201,8 +200,6 @@ class TrainManager:
                 reset_scheduler=reset_scheduler,
                 reset_optimizer=reset_optimizer,
             )
-             
-            tf_freeze_model_parameters(self.model, layers_to_unfreeze=['gloss_output_layer.weight', 'gloss_output_layer.bias','decoder.output_layer.weight', 'decoder.layer_norm.bias', 'decoder.layer_norm.weight', 'decoder.layers.0.dec_layer_norm.bias', 'decoder.layers.0.dec_layer_norm.weight', 'decoder.layers.0.feed_forward.layer_norm.bias', 'decoder.layers.0.feed_forward.layer_norm.weight', 'decoder.layers.0.feed_forward.pwff_layer.0.bias', 'decoder.layers.0.feed_forward.pwff_layer.0.weight', 'decoder.layers.0.feed_forward.pwff_layer.3.bias', 'decoder.layers.0.feed_forward.pwff_layer.3.weight', 'decoder.layers.0.src_trg_att.k_layer.bias', 'decoder.layers.0.src_trg_att.k_layer.weight', 'decoder.layers.0.src_trg_att.output_layer.bias', 'decoder.layers.0.src_trg_att.output_layer.weight', 'decoder.layers.0.src_trg_att.q_layer.bias', 'decoder.layers.0.src_trg_att.q_layer.weight', 'decoder.layers.0.src_trg_att.v_layer.bias', 'decoder.layers.0.src_trg_att.v_layer.weight', 'decoder.layers.0.trg_trg_att.k_layer.bias', 'decoder.layers.0.trg_trg_att.k_layer.weight', 'decoder.layers.0.trg_trg_att.output_layer.bias', 'decoder.layers.0.trg_trg_att.output_layer.weight', 'decoder.layers.0.trg_trg_att.q_layer.bias', 'decoder.layers.0.trg_trg_att.q_layer.weight', 'decoder.layers.0.trg_trg_att.v_layer.bias', 'decoder.layers.0.trg_trg_att.v_layer.weight', 'decoder.layers.0.x_layer_norm.bias', 'decoder.layers.0.x_layer_norm.weight', 'decoder.layers.1.dec_layer_norm.bias', 'decoder.layers.1.dec_layer_norm.weight', 'decoder.layers.1.feed_forward.layer_norm.bias', 'decoder.layers.1.feed_forward.layer_norm.weight', 'decoder.layers.1.feed_forward.pwff_layer.0.bias', 'decoder.layers.1.feed_forward.pwff_layer.0.weight', 'decoder.layers.1.feed_forward.pwff_layer.3.bias', 'decoder.layers.1.feed_forward.pwff_layer.3.weight', 'decoder.layers.1.src_trg_att.k_layer.bias', 'decoder.layers.1.src_trg_att.k_layer.weight', 'decoder.layers.1.src_trg_att.output_layer.bias', 'decoder.layers.1.src_trg_att.output_layer.weight', 'decoder.layers.1.src_trg_att.q_layer.bias', 'decoder.layers.1.src_trg_att.q_layer.weight', 'decoder.layers.1.src_trg_att.v_layer.bias', 'decoder.layers.1.src_trg_att.v_layer.weight', 'decoder.layers.1.trg_trg_att.k_layer.bias', 'decoder.layers.1.trg_trg_att.k_layer.weight', 'decoder.layers.1.trg_trg_att.output_layer.bias', 'decoder.layers.1.trg_trg_att.output_layer.weight', 'decoder.layers.1.trg_trg_att.q_layer.bias', 'decoder.layers.1.trg_trg_att.q_layer.weight', 'decoder.layers.1.trg_trg_att.v_layer.bias', 'decoder.layers.1.trg_trg_att.v_layer.weight', 'decoder.layers.1.x_layer_norm.bias', 'decoder.layers.1.x_layer_norm.weight', 'decoder.layers.2.dec_layer_norm.bias', 'decoder.layers.2.dec_layer_norm.weight', 'decoder.layers.2.feed_forward.layer_norm.bias', 'decoder.layers.2.feed_forward.layer_norm.weight', 'decoder.layers.2.feed_forward.pwff_layer.0.bias', 'decoder.layers.2.feed_forward.pwff_layer.0.weight', 'decoder.layers.2.feed_forward.pwff_layer.3.bias', 'decoder.layers.2.feed_forward.pwff_layer.3.weight', 'decoder.layers.2.src_trg_att.k_layer.bias', 'decoder.layers.2.src_trg_att.k_layer.weight', 'decoder.layers.2.src_trg_att.output_layer.bias', 'decoder.layers.2.src_trg_att.output_layer.weight', 'decoder.layers.2.src_trg_att.q_layer.bias', 'decoder.layers.2.src_trg_att.q_layer.weight', 'decoder.layers.2.src_trg_att.v_layer.bias', 'decoder.layers.2.src_trg_att.v_layer.weight', 'decoder.layers.2.trg_trg_att.k_layer.bias', 'decoder.layers.2.trg_trg_att.k_layer.weight', 'decoder.layers.2.trg_trg_att.output_layer.bias', 'decoder.layers.2.trg_trg_att.output_layer.weight', 'decoder.layers.2.trg_trg_att.q_layer.bias', 'decoder.layers.2.trg_trg_att.q_layer.weight', 'decoder.layers.2.trg_trg_att.v_layer.bias', 'decoder.layers.2.trg_trg_att.v_layer.weight', 'decoder.layers.2.x_layer_norm.bias', 'decoder.layers.2.x_layer_norm.weight', 'decoder.output_layer.weight'])
 
     def _get_recognition_params(self, train_config) -> None:
         # NOTE (Cihan): The blank label is the silence index in the gloss vocabulary.
@@ -311,179 +308,10 @@ class TrainManager:
         model_checkpoint = load_checkpoint(path=path, use_cuda=self.use_cuda)
 
         # restore model and optimizer parameters
-        
-        
-        #TODO: Adjust the model state to accomodate smaller vocab
-       
-        original_embedding_weight = model_checkpoint["model_state"]['decoder.output_layer.weight']
-        # Trim or replace the embedding weights to match the new vocabulary size
-        new_embedding_weight = original_embedding_weight[:self.model.txt_embed.vocab_size]
-        model_checkpoint["model_state"]['decoder.output_layer.weight'] = new_embedding_weight
-        
-        original_embedding_weight = model_checkpoint["model_state"]['txt_embed.lut.weight']
-        # Trim or replace the embedding weights to match the new vocabulary size
-        new_embedding_weight = original_embedding_weight[:self.model.txt_embed.vocab_size]
-        model_checkpoint["model_state"]['txt_embed.lut.weight'] = new_embedding_weight
-       
-        original_embedding_weight = model_checkpoint["model_state"]['gloss_output_layer.weight']
-        # Trim or replace the embedding weights to match the new vocabulary size
-        new_embedding_weight = original_embedding_weight[:109]
-        model_checkpoint["model_state"]['gloss_output_layer.weight'] = new_embedding_weight
-
-        original_embedding_weight = model_checkpoint["model_state"]['gloss_output_layer.bias']
-        # Trim or replace the embedding weights to match the new vocabulary size
-        new_embedding_weight = original_embedding_weight[:109]
-        model_checkpoint["model_state"]['gloss_output_layer.bias'] = new_embedding_weight
-    
         self.model.load_state_dict(model_checkpoint["model_state"])
+
         if not reset_optimizer:
-            
             self.optimizer.load_state_dict(model_checkpoint["optimizer_state"])
-            
-            param_id = 135  # The ID of the parameter to adjust
-            
-            
-            # Access the optimizer state for the specific parameter
-            state = self.optimizer.state_dict()['state'][param_id]
-            
-            # Trim the tensors within the state
-            
-            self.optimizer.state_dict()['state'][param_id]['exp_avg'] = state['exp_avg'][:self.model.txt_embed.vocab_size]
-      
-            self.optimizer.state_dict()['state'][param_id]['exp_avg_sq'] = state['exp_avg_sq'][:self.model.txt_embed.vocab_size]
-            optimizer_state_dict = self.optimizer.state_dict()
-            
-            # Print the keys and shapes for the top-level structure
-            print("Top-level keys:", optimizer_state_dict.keys())
-            for key in optimizer_state_dict.keys():
-                print(f"Key: {key}")
-                if key == 'state':
-                    # This is a dict mapping parameter tensor IDs to their states
-                    for param_id, state in optimizer_state_dict['state'].items():
-                        print(f"  Param ID: {param_id}")
-                        for state_key, value in state.items():
-                            if hasattr(value, 'shape'):
-                                print(f"    {state_key}: {value.shape}")
-                            else:
-                                print(f"    {state_key}: {type(value)}")
-                elif key == 'param_groups':
-                    # This is a list of parameter groups, each group is a dict
-                    for i, param_group in enumerate(optimizer_state_dict['param_groups']):
-                        print(f"  Param Group {i}:")
-                        for param_group_key, param_group_value in param_group.items():
-                            if param_group_key == 'params':
-                                # This is a list of parameter IDs
-                                print(f"    {param_group_key}: {len(param_group_value)} params")
-                            else:
-                                print(f"    {param_group_key}: {param_group_value}")
-            param_id = 130  # The ID of the parameter to adjust
-            
-            
-            # Access the optimizer state for the specific parameter
-            state = self.optimizer.state_dict()['state'][param_id]
-            
-            # Trim the tensors within the state
-            
-            self.optimizer.state_dict()['state'][param_id]['exp_avg'] = state['exp_avg'][:self.model.txt_embed.vocab_size]
-      
-            self.optimizer.state_dict()['state'][param_id]['exp_avg_sq'] = state['exp_avg_sq'][:self.model.txt_embed.vocab_size]
-            optimizer_state_dict = self.optimizer.state_dict()
-            
-            # Print the keys and shapes for the top-level structure
-            print("Top-level keys:", optimizer_state_dict.keys())
-            for key in optimizer_state_dict.keys():
-                print(f"Key: {key}")
-                if key == 'state':
-                    # This is a dict mapping parameter tensor IDs to their states
-                    for param_id, state in optimizer_state_dict['state'].items():
-                        print(f"  Param ID: {param_id}")
-                        for state_key, value in state.items():
-                            if hasattr(value, 'shape'):
-                                print(f"    {state_key}: {value.shape}")
-                            else:
-                                print(f"    {state_key}: {type(value)}")
-                elif key == 'param_groups':
-                    # This is a list of parameter groups, each group is a dict
-                    for i, param_group in enumerate(optimizer_state_dict['param_groups']):
-                        print(f"  Param Group {i}:")
-                        for param_group_key, param_group_value in param_group.items():
-                            if param_group_key == 'params':
-                                # This is a list of parameter IDs
-                                print(f"    {param_group_key}: {len(param_group_value)} params")
-                            else:
-                                print(f"    {param_group_key}: {param_group_value}")
-            param_id = 138  # The ID of the parameter to adjust
-            
-            
-            # Access the optimizer state for the specific parameter
-            state = self.optimizer.state_dict()['state'][param_id]
-            
-            # Trim the tensors within the state
-            
-            self.optimizer.state_dict()['state'][param_id]['exp_avg'] = state['exp_avg'][:109]
-      
-            self.optimizer.state_dict()['state'][param_id]['exp_avg_sq'] = state['exp_avg_sq'][:109]
-            optimizer_state_dict = self.optimizer.state_dict()
-            
-            # Print the keys and shapes for the top-level structure
-            print("Top-level keys:", optimizer_state_dict.keys())
-            for key in optimizer_state_dict.keys():
-                print(f"Key: {key}")
-                if key == 'state':
-                    # This is a dict mapping parameter tensor IDs to their states
-                    for param_id, state in optimizer_state_dict['state'].items():
-                        print(f"  Param ID: {param_id}")
-                        for state_key, value in state.items():
-                            if hasattr(value, 'shape'):
-                                print(f"    {state_key}: {value.shape}")
-                            else:
-                                print(f"    {state_key}: {type(value)}")
-                elif key == 'param_groups':
-                    # This is a list of parameter groups, each group is a dict
-                    for i, param_group in enumerate(optimizer_state_dict['param_groups']):
-                        print(f"  Param Group {i}:")
-                        for param_group_key, param_group_value in param_group.items():
-                            if param_group_key == 'params':
-                                # This is a list of parameter IDs
-                                print(f"    {param_group_key}: {len(param_group_value)} params")
-                            else:
-                                print(f"    {param_group_key}: {param_group_value}")
-            param_id = 139  # The ID of the parameter to adjust
-            
-            
-            # Access the optimizer state for the specific parameter
-            state = self.optimizer.state_dict()['state'][param_id]
-            
-            # Trim the tensors within the state
-            
-            self.optimizer.state_dict()['state'][param_id]['exp_avg'] = state['exp_avg'][:109]
-      
-            self.optimizer.state_dict()['state'][param_id]['exp_avg_sq'] = state['exp_avg_sq'][:109]
-            optimizer_state_dict = self.optimizer.state_dict()
-            
-            # Print the keys and shapes for the top-level structure
-            print("Top-level keys:", optimizer_state_dict.keys())
-            for key in optimizer_state_dict.keys():
-                print(f"Key: {key}")
-                if key == 'state':
-                    # This is a dict mapping parameter tensor IDs to their states
-                    for param_id, state in optimizer_state_dict['state'].items():
-                        print(f"  Param ID: {param_id}")
-                        for state_key, value in state.items():
-                            if hasattr(value, 'shape'):
-                                print(f"    {state_key}: {value.shape}")
-                            else:
-                                print(f"    {state_key}: {type(value)}")
-                elif key == 'param_groups':
-                    # This is a list of parameter groups, each group is a dict
-                    for i, param_group in enumerate(optimizer_state_dict['param_groups']):
-                        print(f"  Param Group {i}:")
-                        for param_group_key, param_group_value in param_group.items():
-                            if param_group_key == 'params':
-                                # This is a list of parameter IDs
-                                print(f"    {param_group_key}: {len(param_group_value)} params")
-                            else:
-                                print(f"    {param_group_key}: {param_group_value}")
         else:
             self.logger.info("Reset optimizer.")
 
@@ -512,7 +340,7 @@ class TrainManager:
         if self.use_cuda:
             self.model.cuda()
 
-    def train_and_validate(self, train_data: Dataset, valid_data: Dataset) -> None:
+    def train_and_validate(self, train_data: Dataset, valid_data: Dataset, teacher: SignModel) -> None:
         """
         Train the model and validate it from time to time on the validation set.
 
@@ -635,6 +463,8 @@ class TrainManager:
                     #   Hmm... Future Cihan's problem.
                     val_res = validate_on_data(
                         model=self.model,
+                        teacher=teacher,
+                        isTrain=True,
                         data=valid_data,
                         batch_size=self.eval_batch_size,
                         use_cuda=self.use_cuda,
@@ -742,9 +572,6 @@ class TrainManager:
                             self.logger.info("Saving new checkpoint.")
                             new_best = True
                             self._save_checkpoint()
-                        self.logger.info("Saving new checkpoint.")
-                        new_best = True
-                        self._save_checkpoint()
 
                     if (
                         self.scheduler is not None
@@ -914,6 +741,10 @@ class TrainManager:
 
         recognition_loss, translation_loss = self.model.get_loss_for_batch(
             batch=batch,
+            isSoftPred=True,
+            teacher_model=self.teacher,
+            T=3.5,
+            alpha=0.5,
             recognition_loss_function=self.recognition_loss_function
             if self.do_recognition
             else None,
@@ -1139,7 +970,7 @@ class TrainManager:
                 opened_file.write("{}|{}\n".format(seq, hyp))
 
 
-def train(cfg_file: str) -> None:
+def train(cfg_file: str, teacher: SignModel) -> None:
     """
     Main training function. After training, also test on test data if given.
 
@@ -1157,7 +988,7 @@ def train(cfg_file: str) -> None:
     # build model and load parameters into it
     do_recognition = cfg["training"].get("recognition_loss_weight", 1.0) > 0.0
     do_translation = cfg["training"].get("translation_loss_weight", 1.0) > 0.0
-    model = build_transfer_model(
+    model = build_model(
         cfg=cfg["model"],
         gls_vocab=gls_vocab,
         txt_vocab=txt_vocab,
@@ -1169,8 +1000,8 @@ def train(cfg_file: str) -> None:
     )
 
     # for training management, e.g. early stopping and model selection
-    trainer = TrainManager(model=model, config=cfg)
-    
+    trainer = TrainManager(model=model, config=cfg, teacher=teacher)
+
     # store copy of original training config in model dir
     shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
 
@@ -1193,12 +1024,12 @@ def train(cfg_file: str) -> None:
     gls_vocab.to_file(gls_vocab_file)
     txt_vocab_file = "{}/txt.vocab".format(cfg["training"]["model_dir"])
     txt_vocab.to_file(txt_vocab_file)
-    
+
     # train the model
-    trainer.train_and_validate(train_data=train_data, valid_data=dev_data)
+    trainer.train_and_validate(train_data=train_data, valid_data=dev_data, teacher=teacher)
     # Delete to speed things up as we don't need training data anymore
     del train_data, dev_data, test_data
-    
+
     # predict with the best model on validation and test
     # (if test data is available)
     ckpt = "{}/{}.ckpt".format(trainer.model_dir, trainer.best_ckpt_iteration)
@@ -1206,7 +1037,7 @@ def train(cfg_file: str) -> None:
     output_path = os.path.join(trainer.model_dir, output_name)
     logger = trainer.logger
     del trainer
-    test(cfg_file, ckpt=ckpt, output_path=output_path, logger=logger)
+    test(cfg_file, ckpt=ckpt, teacher=teacher, output_path=output_path, logger=logger)
 
 
 if __name__ == "__main__":

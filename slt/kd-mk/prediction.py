@@ -8,6 +8,10 @@ import numpy as np
 import pickle as pickle
 import time
 import torch.nn as nn
+import tensorflow as tf
+import torch
+import onnx
+from onnx_tf.backend import prepare
 
 from typing import List
 from torchtext.data import Dataset
@@ -33,6 +37,8 @@ from signjoey.phoenix_utils.phoenix_cleanup import (
 # pylint: disable=too-many-arguments,too-many-locals,no-member
 def validate_on_data(
     model: SignModel,
+    teacher: SignModel,
+    isTrain: bool,
     data: Dataset,
     batch_size: int,
     use_cuda: bool,
@@ -136,6 +142,10 @@ def validate_on_data(
 
             batch_recognition_loss, batch_translation_loss = model.get_loss_for_batch(
                 batch=batch,
+                isSoftPred=isTrain,
+                teacher_model=teacher,
+                T=3.5,
+                alpha=0.5,
                 recognition_loss_function=recognition_loss_function
                 if do_recognition
                 else None,
@@ -279,7 +289,7 @@ def validate_on_data(
 
 # pylint: disable-msg=logging-too-many-args
 def test(
-    cfg_file, ckpt: str, output_path: str = None, logger: logging.Logger = None
+    cfg_file, ckpt: str, teacher: SignModel, output_path: str = None, logger: logging.Logger = None
 ) -> None:
     """
     Main test function. Handles loading a model from checkpoint, generating
@@ -394,6 +404,8 @@ def test(
             logger.info("[DEV] partition [RECOGNITION] experiment [BW]: %d", rbw)
             dev_recognition_results[rbw] = validate_on_data(
                 model=model,
+                teacher=teacher,
+                isTrain=False,
                 data=dev_data,
                 batch_size=batch_size,
                 use_cuda=use_cuda,
@@ -457,6 +469,8 @@ def test(
             for ta in translation_beam_alphas:
                 dev_translation_results[tbw][ta] = validate_on_data(
                     model=model,
+                    teacher=teacher,
+                    isTrain=False,
                     data=dev_data,
                     batch_size=batch_size,
                     use_cuda=use_cuda,
@@ -560,6 +574,8 @@ def test(
 
     test_best_result = validate_on_data(
         model=model,
+        teacher=teacher,
+        isTrain=False,
         data=test_data,
         batch_size=batch_size,
         use_cuda=use_cuda,
@@ -699,3 +715,4 @@ def test(
             )
         with open(output_path + ".test_results.pkl", "wb") as out:
             pickle.dump(test_best_result, out)
+

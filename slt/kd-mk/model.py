@@ -13,6 +13,7 @@ from signjoey.embeddings import Embeddings, SpatialEmbeddings
 from signjoey.encoders import Encoder, RecurrentEncoder, TransformerEncoder
 from signjoey.decoders import Decoder, RecurrentDecoder, TransformerDecoder
 from signjoey.search import beam_search, greedy
+from torchtext.data import Field, RawField
 from signjoey.vocabulary import (
     TextVocabulary,
     GlossVocabulary,
@@ -21,10 +22,10 @@ from signjoey.vocabulary import (
     BOS_TOKEN,
 )
 from signjoey.batch import Batch
-from signjoey.helpers import freeze_params
+from signjoey.helpers import freeze_params, load_config, load_checkpoint
 from torch import Tensor
 from typing import Union
-
+import torch
 
 class SignModel(nn.Module):
     """
@@ -42,8 +43,6 @@ class SignModel(nn.Module):
         txt_vocab: TextVocabulary,
         do_recognition: bool = True,
         do_translation: bool = True,
-        include_ctc: bool = True,
-
     ):
         """
         Create a new encoder-decoder model
@@ -58,9 +57,7 @@ class SignModel(nn.Module):
         :param do_translation: flag to build the model with translation decoder.
         """
         super().__init__()
-        
 
-        self.include_ctc = include_ctc
         self.encoder = encoder
         self.decoder = decoder
 
@@ -78,8 +75,6 @@ class SignModel(nn.Module):
         self.do_recognition = do_recognition
         self.do_translation = do_translation
 
-       
-                
     # pylint: disable=arguments-differ
     def forward(
         self,
@@ -182,6 +177,10 @@ class SignModel(nn.Module):
     def get_loss_for_batch(
         self,
         batch: Batch,
+        isSoftPred: bool,
+        teacher_model,  # Add teacher model as a parameter
+        T: float,  # Temperature for distillation
+        alpha: float,  # Weighting factor between traditional and distillation loss
         recognition_loss_function: nn.Module,
         translation_loss_function: nn.Module,
         recognition_loss_weight: float,
@@ -200,44 +199,105 @@ class SignModel(nn.Module):
         """
         # pylint: disable=unused-variable
 
-        # Do a forward pass
-        decoder_outputs, gloss_probabilities = self.forward(
+        # Student model forward pass
+        student_decoder_outputs, student_gloss_probabilities = self.forward(
             sgn=batch.sgn,
             sgn_mask=batch.sgn_mask,
             sgn_lengths=batch.sgn_lengths,
             txt_input=batch.txt_input,
             txt_mask=batch.txt_mask,
         )
+        
+        # Teacher model forward pass
+        with torch.no_grad():
+            teacher_decoder_outputs, teacher_gloss_probabilities = teacher_model.forward(
+                sgn=batch.sgn,
+                sgn_mask=batch.sgn_mask,
+                sgn_lengths=batch.sgn_lengths,
+                txt_input=batch.txt_input,
+                txt_mask=batch.txt_mask,
+            )
 
-        if self.do_recognition:
-            assert gloss_probabilities is not None
-            # Calculate Recognition Loss
-            recognition_loss = (
-                recognition_loss_function(
-                    gloss_probabilities,
+        # Initialize losses
+        recognition_loss, translation_loss = None, None
+        recognition_distill_loss, translation_distill_loss = None, None
+
+        if isSoftPred:
+            if self.do_recognition:
+                assert student_gloss_probabilities is not None and teacher_gloss_probabilities is not None
+                # Calculate Recognition Loss
+                recognition_loss = recognition_loss_function(
+                    student_gloss_probabilities,
                     batch.gls,
                     batch.sgn_lengths.long(),
                     batch.gls_lengths.long(),
+                ) * recognition_loss_weight
+    
+                recognition_distill_loss = distillation_loss(
+                    student_gloss_probabilities, teacher_gloss_probabilities, T, alpha
+                ) if self.do_recognition else 0
+    
+            if self.do_translation:
+                assert student_decoder_outputs is not None and teacher_decoder_outputs is not None
+                student_word_outputs, _, _, _ = student_decoder_outputs
+                teacher_word_outputs, _, _, _ = teacher_decoder_outputs
+                
+                # Calculate Translation Loss
+                student_txt_log_probs = F.log_softmax(student_word_outputs, dim=-1)
+                translation_loss = translation_loss_function(student_txt_log_probs, batch.txt) * translation_loss_weight
+    
+                # Calculate Translation Distillation Loss
+                # translation_distill_loss = distillation_loss(
+                #     student_word_outputs, teacher_word_outputs[:, :, 1:], T, alpha
+                # ) if self.do_translation else 0
+
+                translation_distill_loss = distillation_loss(
+                    student_word_outputs, teacher_word_outputs, T, alpha
+                ) if self.do_translation else 0
+    
+            # Combine traditional loss and distillation loss
+            combined_recognition_loss = None
+            combined_translation_loss = None
+            distillation_scaling = (1 - alpha) * (T ** 2)
+
+            # Adjusted combined recognition loss calculation
+            if recognition_loss is not None:
+                combined_recognition_loss = alpha * recognition_loss + distillation_scaling * recognition_distill_loss
+            if translation_loss is not None:
+                combined_translation_loss = alpha * translation_loss + distillation_scaling * translation_distill_loss
+    
+            return combined_recognition_loss, combined_translation_loss
+            
+        else:
+            if self.do_recognition:
+                assert student_gloss_probabilities is not None
+                # Calculate Recognition Loss
+                recognition_loss = (
+                    recognition_loss_function(
+                        student_gloss_probabilities,
+                        batch.gls,
+                        batch.sgn_lengths.long(),
+                        batch.gls_lengths.long(),
+                    )
+                    * recognition_loss_weight
                 )
-                * recognition_loss_weight
-            )
-        else:
-            recognition_loss = None
-
-        if self.do_translation:
-            assert decoder_outputs is not None
-            word_outputs, _, _, _ = decoder_outputs
-            # Calculate Translation Loss
-            txt_log_probs = F.log_softmax(word_outputs, dim=-1)
-            translation_loss = (
-                translation_loss_function(txt_log_probs, batch.txt)
-                * translation_loss_weight
-            )
-        else:
-            translation_loss = None
-
-        return recognition_loss, translation_loss
-
+            else:
+                recognition_loss = None
+    
+            if self.do_translation:
+                assert student_decoder_outputs is not None
+                student_word_outputs, _, _, _ = student_decoder_outputs
+                # Calculate Translation Loss
+                txt_log_probs = F.log_softmax(student_word_outputs, dim=-1)
+                translation_loss = (
+                    translation_loss_function(txt_log_probs, batch.txt)
+                    * translation_loss_weight
+                )
+            else:
+                translation_loss = None
+    
+            return recognition_loss, translation_loss
+            
     def run_batch(
         self,
         batch: Batch,
@@ -362,7 +422,6 @@ def build_model(
     txt_vocab: TextVocabulary,
     do_recognition: bool = True,
     do_translation: bool = True,
-    
 ) -> SignModel:
     """
     Build and initialize the model according to the configuration.
@@ -474,139 +533,32 @@ def build_model(
 
     return model
 
-
-
-
-def build_transfer_model(
-    cfg: dict,
-    sgn_dim: int,
-    gls_vocab: GlossVocabulary,
-    txt_vocab: TextVocabulary,
-    do_recognition: bool = True,
-    do_translation: bool = True,
-
-) -> SignModel:
+def distillation_loss(student_logits, teacher_logits, T, alpha):
     """
-    Build and initialize the model according to the configuration.
-
-    :param cfg: dictionary configuration containing model specifications
-    :param sgn_dim: feature dimension of the sign frame representation, i.e. 2560 for EfficientNet-7.
-    :param gls_vocab: sign gloss vocabulary
-    :param txt_vocab: spoken language word vocabulary
-    :return: built and initialized model
-    :param do_recognition: flag to build the model with recognition output.
-    :param do_translation: flag to build the model with translation decoder.
+    Calculate the distillation loss between the student's logits and the teacher's logits.
     """
-
-    txt_padding_idx = txt_vocab.stoi[PAD_TOKEN]
-
-    sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
-        **cfg["encoder"]["embeddings"],
-        num_heads=cfg["encoder"]["num_heads"],
-        input_size=sgn_dim,
-    )
-
-    # build encoder
-    enc_dropout = cfg["encoder"].get("dropout", 0.0)
-    enc_emb_dropout = cfg["encoder"]["embeddings"].get("dropout", enc_dropout)
-    if cfg["encoder"].get("type", "recurrent") == "transformer":
-        assert (
-            cfg["encoder"]["embeddings"]["embedding_dim"]
-            == cfg["encoder"]["hidden_size"]
-        ), "for transformer, emb_size must be hidden_size"
-
-        encoder = TransformerEncoder(
-            **cfg["encoder"],
-            emb_size=sgn_embed.embedding_dim,
-            emb_dropout=enc_emb_dropout,
-        )
-    else:
-        encoder = RecurrentEncoder(
-            **cfg["encoder"],
-            emb_size=sgn_embed.embedding_dim,
-            emb_dropout=enc_emb_dropout,
-        )
-
-    if do_recognition:
-        gloss_output_layer = nn.Linear(encoder.output_size, len(gls_vocab))
-        if cfg["encoder"].get("freeze", False):
-            freeze_params(gloss_output_layer)
-    else:
-        gloss_output_layer = None
-
-    # build decoder and word embeddings
-    if do_translation:
-        txt_embed: Union[Embeddings, None] = Embeddings(
-            **cfg["decoder"]["embeddings"],
-            num_heads=cfg["decoder"]["num_heads"],
-            vocab_size=len(txt_vocab),
-            padding_idx=txt_padding_idx,
-        )
-        dec_dropout = cfg["decoder"].get("dropout", 0.0)
-        dec_emb_dropout = cfg["decoder"]["embeddings"].get("dropout", dec_dropout)
-        if cfg["decoder"].get("type", "recurrent") == "transformer":
-            decoder = TransformerDecoder(
-                **cfg["decoder"],
-                encoder=encoder,
-                vocab_size=len(txt_vocab),
-                emb_size=txt_embed.embedding_dim,
-                emb_dropout=dec_emb_dropout,
-            )
-        else:
-            decoder = RecurrentDecoder(
-                **cfg["decoder"],
-                encoder=encoder,
-                vocab_size=len(txt_vocab),
-                emb_size=txt_embed.embedding_dim,
-                emb_dropout=dec_emb_dropout,
-            )
-    else:
-        txt_embed = None
-        decoder = None
-
-    model = SignModel(
-        encoder=encoder,  # Use the pre-initialized encoder
-        gloss_output_layer=gloss_output_layer,  # Use the pre-initialized gloss output layer if not reinitializing
-        decoder=decoder,  # Use the pre-initialized decoder
-        sgn_embed=sgn_embed,  # Use the pre-initialized sign embeddings
-        txt_embed=txt_embed,  # Use the pre-initialized text embeddings
-        gls_vocab=gls_vocab,  # Use the pre-initialized gloss vocabulary
-        txt_vocab=txt_vocab,  # Use the pre-initialized text vocabulary
-        do_recognition=True,  # Set to False if you don't want to include CTC
-        do_translation=True,
-        include_ctc=False,  # Set to False to remove the CTC layer for FSL
-    )
-
-    if do_translation:
-        # tie softmax layer with txt embeddings
-        if cfg.get("tied_softmax", False):
-            # noinspection PyUnresolvedReferences
-            if txt_embed.lut.weight.shape == model.decoder.output_layer.weight.shape:
-                # (also) share txt embeddings and softmax layer:
-                # noinspection PyUnresolvedReferences
-                model.decoder.output_layer.weight = txt_embed.lut.weight
-            else:
-                raise ValueError(
-                    "For tied_softmax, the decoder embedding_dim and decoder "
-                    "hidden_size must be the same."
-                    "The decoder must be a Transformer."
-                )
-
-    # custom initialization of model parameters
-    initialize_model(model, cfg, txt_padding_idx)
-    return model
-
-
-def tf_freeze_model_parameters(model, layers_to_unfreeze):
-    # Freeze all model parameters first
-    for name, param in model.named_parameters():
-        param.requires_grad = False
+    soft_student_logits = F.log_softmax(student_logits / T, dim=-1)
+    soft_teacher_logits = F.softmax(teacher_logits / T, dim=-1)
+    distill_loss = F.kl_div(soft_student_logits, soft_teacher_logits, reduction="batchmean") * (T ** 2)
+    return distill_loss
     
-    # Then unfreeze specified layers
-    for name, param in model.named_parameters():
-        if any(layer_name in name for layer_name in layers_to_unfreeze):
-            print(f"UNFREEZE: {name}")  # Use the variable 'name' instead
-            param.requires_grad = True
+def load_teacher_model(ckpt_path, cfg_file, gls_vocab, txt_vocab):
+    cfg = load_config(cfg_file)
+    model_checkpoint = load_checkpoint(ckpt_path, torch.cuda.is_available())
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    teacher_model = build_model(
+        cfg=cfg["model"],
+        gls_vocab=gls_vocab,
+        txt_vocab=txt_vocab,
+        sgn_dim=sum(cfg["data"]["feature_size"])
+        if isinstance(cfg["data"]["feature_size"], list)
+        else cfg["data"]["feature_size"],
+        do_recognition=True,
+        do_translation=True,
+    ).to(device)
 
-
+    teacher_model.load_state_dict(model_checkpoint["model_state"])
+    
+    return teacher_model
 

@@ -11,7 +11,12 @@ import torch
 
 def load_dataset_file(filename):
     with gzip.open(filename, "rb") as f:
-        loaded_object = pickle.load(f)
+        try:
+            loaded_object = torch.load(f)
+        except RuntimeError:
+            # Use pickle.load as a fallback
+            f.seek(0)  # Reset file pointer
+            loaded_object = pickle.load(f)
         return loaded_object
 
 class SignTranslationDataset(data.Dataset):
